@@ -1,0 +1,42 @@
+/* Dashboard specific styles copied from provided HTML */
+:root{
+  --primary: #5b7cf0; /* soft professional blue */
+  --accent: #00a3bf; /* teal accent */
+  --muted: #94a3b8; /* muted text */
+  --surface: #0b1220;
+  --surface-1: #0f1724;
+  --surface-2: #121827;
+}
+body {
+  background-color: var(--surface);
+  color: #e6eef8;
+}
+.premium-card {
+  background: linear-gradient(145deg, rgba(14,18,28,0.55) 0%, rgba(8,12,22,0.55) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(91,124,240,0.06);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.premium-card:hover {
+  border-color: rgba(91,124,240,0.16);
+  box-shadow: 0 10px 30px -10px rgba(11,20,40,0.6), 0 8px 30px rgba(91,124,240,0.06);
+  transform: translateY(-4px);
+}
+.nav-link-active {
+  background: linear-gradient(90deg, rgba(91,124,240,0.06) 0%, transparent 100%);
+  color: var(--primary);
+  border-right: 3px solid var(--primary);
+}
+.chart-grid-line {
+  stroke: rgba(255,255,255,0.03);
+  stroke-width: 1;
+}
+
+/* small helpers used in Dashboard.jsx */
+.bg-surface { background-color: var(--surface-1); }
+.bg-surface-container-low { background-color: var(--surface-2); }
+
+/* subtle utility tweaks */
+.text-muted { color: var(--muted); }
+.btn-primary { background: linear-gradient(90deg, var(--primary), #4b6df0); color: white; }

@@ -1,0 +1,7 @@
+.site-header{background:#fff;border-bottom:1px solid #e6e9ef}
+.site-header .container{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:inherit}
+.brand img{height:36px}
+.site-header nav a{margin-left:1rem;color:var(--accent);text-decoration:none}
+.app-container{padding:2rem}
+h1{margin-top:0}
