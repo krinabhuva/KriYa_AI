@@ -1,7 +1,11 @@
 import React, { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import api from '../api'
 
 export default function LandingPage() {
+  const navigate = useNavigate()
+  const isLoggedIn = api.isAuthenticated()
+
   useEffect(() => {
     try { document.documentElement.classList.add('dark') } catch (e) {}
   }, [])
@@ -19,7 +23,31 @@ export default function LandingPage() {
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary-container/5 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Header is provided globally by App */}
+      {/* Landing Page Navbar */}
+      <nav className="relative z-20 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 no-underline">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_20px_rgba(192,193,255,0.25)]">
+            <span className="material-symbols-outlined text-on-primary text-[20px] font-bold">bolt</span>
+          </div>
+          <span className="font-headline-md text-headline-md font-extrabold tracking-tight text-on-surface">Kriya AI</span>
+        </Link>
+        <div className="flex items-center gap-4">
+          <a href="#features" className="hidden sm:inline font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors no-underline">Features</a>
+          <Link to="/about" className="hidden sm:inline font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors no-underline">About</Link>
+          {isLoggedIn ? (
+            <Link to="/portal" className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-fixed transition-all no-underline shadow-[0_0_15px_rgba(192,193,255,0.25)]">
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="font-label-md text-label-md text-primary hover:text-primary-fixed-dim transition-colors no-underline">Sign In</Link>
+              <Link to="/login" className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-fixed transition-all no-underline shadow-[0_0_15px_rgba(192,193,255,0.25)]">
+                Get Started
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
 
       <main className="relative z-10 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-stack-xl">
         {/* Hero Section */}
@@ -37,14 +65,14 @@ export default function LandingPage() {
             Upload your raw sales data. Get instant, institutional-grade insights, predictive forecasting, and automated recommendations without writing a single line of SQL.
           </p>
           <div className="flex flex-col sm:flex-row gap-stack-md w-full sm:w-auto">
-            <button className="px-8 py-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-fixed transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(192,193,255,0.3)] hover:shadow-[0_0_30px_rgba(192,193,255,0.5)]">
-              Start Free Analysis
+            <button onClick={() => navigate(isLoggedIn ? '/portal' : '/login')} className="px-8 py-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold hover:bg-primary-fixed transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(192,193,255,0.3)] hover:shadow-[0_0_30px_rgba(192,193,255,0.5)] cursor-pointer">
+              {isLoggedIn ? 'Go to Dashboard' : 'Start Free Analysis'}
               <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>arrow_forward</span>
             </button>
-            <button className="px-8 py-4 rounded-lg border border-outline-variant text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-variant transition-all flex items-center justify-center gap-2">
+            <a href="#features" className="px-8 py-4 rounded-lg border border-outline-variant text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-variant transition-all flex items-center justify-center gap-2 no-underline">
               <span className="material-symbols-outlined">play_circle</span>
-              Watch Demo
-            </button>
+              Explore Features
+            </a>
           </div>
 
           <div className="mt-stack-xl w-full max-w-5xl rounded-xl border border-outline-variant/20 glass-card p-2 shadow-2xl relative overflow-hidden group max-w-4xl">

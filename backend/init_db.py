@@ -10,7 +10,7 @@ def init_database():
     """Initialize database and create tables"""
     print("Creating database tables...")
     Base.metadata.create_all(bind=engine)
-    print("✓ Tables created")
+    print("[OK] Tables created")
 
 def add_sample_data():
     """Add sample data to the database"""
@@ -20,7 +20,7 @@ def add_sample_data():
         # Check if admin user exists
         admin = db.query(models.User).filter(models.User.username == "admin").first()
         if admin:
-            print("✓ Sample data already exists")
+            print("[OK] Sample data already exists")
             return
         
         print("Adding sample data...")
@@ -61,7 +61,7 @@ def add_sample_data():
         db.add(viewer_user)
         db.commit()
         
-        print(f"✓ Added users:")
+        print(f"[OK] Added users:")
         print(f"  - admin (admin123)")
         print(f"  - analyst (analyst123)")
         print(f"  - viewer (viewer123)")
@@ -113,7 +113,7 @@ def add_sample_data():
             db.add(item)
         db.commit()
         
-        print(f"✓ Added {len(items)} inventory items")
+        print(f"[OK] Added {len(items)} inventory items")
         
         # Create sample predictions
         predictions = [
@@ -143,16 +143,16 @@ def add_sample_data():
             db.add(pred)
         db.commit()
         
-        print(f"✓ Added {len(predictions)} prediction models")
+        print(f"[OK] Added {len(predictions)} prediction models")
         
-        print("\n✅ Database initialization complete!")
+        print("\n[OK] Database initialization complete!")
         print("\nLogin credentials:")
         print("  Admin:    admin / admin123")
         print("  Analyst:  analyst / analyst123")
         print("  Viewer:   viewer / viewer123")
         
     except Exception as e:
-        print(f"❌ Error adding sample data: {e}")
+        print(f"[ERROR] Error adding sample data: {e}")
         db.rollback()
     finally:
         db.close()
@@ -162,5 +162,5 @@ if __name__ == "__main__":
         init_database()
         add_sample_data()
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         sys.exit(1)

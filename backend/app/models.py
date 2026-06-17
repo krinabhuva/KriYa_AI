@@ -53,7 +53,7 @@ class InventoryItem(Base):
     supplier = Column(String)
     location = Column(String)
     last_restocked = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default={})
+    item_metadata = Column(JSON, default={})
     is_active = Column(Boolean, default=True)
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
