@@ -7,7 +7,10 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import init_db, engine
 from app.models import Base
-from app.routes import auth, inventory, predictions, analytics, users
+from app.routes import auth, inventory, predictions, analytics, users, upload, ai_insights
+from app.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 settings = get_settings()
 
@@ -36,6 +39,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +58,9 @@ app.include_router(users.router)
 app.include_router(inventory.router)
 app.include_router(predictions.router)
 app.include_router(analytics.router)
+app.include_router(upload.router)
+app.include_router(ai_insights.router)
+
 
 
 # Root endpoint

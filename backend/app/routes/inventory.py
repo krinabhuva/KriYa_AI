@@ -4,6 +4,7 @@ from typing import Optional
 
 from app.database import get_db
 from app import models, schemas, security
+from app.audit import log_audit_event
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -79,6 +80,14 @@ async def create_inventory_item(
     db.add(item)
     db.commit()
     db.refresh(item)
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        action="CREATE_INVENTORY_ITEM",
+        resource_type="inventory_items",
+        resource_id=item.id,
+        changes=item_create.dict()
+    )
     return item
 
 
@@ -107,6 +116,14 @@ async def update_inventory_item(
     db.add(item)
     db.commit()
     db.refresh(item)
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        action="UPDATE_INVENTORY_ITEM",
+        resource_type="inventory_items",
+        resource_id=item.id,
+        changes=update_data
+    )
     return item
 
 
@@ -128,6 +145,14 @@ async def delete_inventory_item(
     item.is_active = False
     db.add(item)
     db.commit()
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        action="DELETE_INVENTORY_ITEM",
+        resource_type="inventory_items",
+        resource_id=item.id,
+        changes={"is_active": False}
+    )
 
     return {"success": True, "message": "Item deleted successfully"}
 
@@ -176,6 +201,14 @@ async def record_inventory_movement(
     db.add(item)
     db.commit()
     db.refresh(db_movement)
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        action="RECORD_INVENTORY_MOVEMENT",
+        resource_type="inventory_movements",
+        resource_id=db_movement.id,
+        changes=movement.dict()
+    )
     return db_movement
 
 

@@ -1,5 +1,6 @@
 import os
 from functools import lru_cache
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
         "DATABASE_URL", "sqlite:///./kriya_ai.db"
     )
     db_echo: bool = os.getenv("DB_ECHO", "False").lower() == "true"
+
+    # AI Key
+    anthropic_api_key: str = Field(default="", env="ANTHROPIC_API_KEY")
 
     # JWT/Auth
     secret_key: str = os.getenv(

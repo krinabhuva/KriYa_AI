@@ -205,3 +205,26 @@ class SuccessResponse(BaseModel):
 class PaginationParams(BaseModel):
     skip: int = Field(0, ge=0)
     limit: int = Field(20, ge=1, le=100)
+
+
+# Sales Record Schemas
+class SalesRecordBase(BaseModel):
+    date: datetime
+    product_sku: str
+    quantity_sold: int
+    revenue: float
+    region: Optional[str] = "Global"
+    channel: Optional[str] = "Direct"
+
+
+class SalesRecordCreate(SalesRecordBase):
+    pass
+
+
+class SalesRecordResponse(SalesRecordBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

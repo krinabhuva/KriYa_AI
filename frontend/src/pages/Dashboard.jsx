@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
 import Sidebar from '../components/Sidebar'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid } from 'recharts'
+import { SkeletonCard } from '../components/Skeleton'
 import './dashboard.css'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [summary, setSummary] = useState(null)
   const [valuation, setValuation] = useState(null)
+  const [kpis, setKpis] = useState(null)
+  const [salesDaily, setSalesDaily] = useState([])
+  const [salesByCategory, setSalesByCategory] = useState([])
+  const [salesData, setSalesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
   const [timeRange, setTimeRange] = useState('1M')
@@ -17,12 +23,19 @@ export default function Dashboard() {
     
     async function fetchDashboardData() {
       try {
-        const [sumData, valData] = await Promise.all([
+        const [sumData, valData, kpiData, dailySales, catSales] = await Promise.all([
           api.getDashboardSummary(),
-          api.getInventoryValuation()
+          api.getInventoryValuation(),
+          api.getKPIs(),
+          api.getSalesDaily(30),
+          api.getSalesByCategory(30)
         ]);
         setSummary(sumData);
         setValuation(valData);
+        setKpis(kpiData);
+        setSalesDaily(dailySales);
+        setSalesData(dailySales);
+        setSalesByCategory(catSales);
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
       } finally {
@@ -130,81 +143,118 @@ export default function Dashboard() {
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-label-md text-outline">Loading database metrics...</p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                  <SkeletonCard />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+                  <div className="lg:col-span-2 h-72 bg-surface-container-low animate-pulse rounded-2xl" />
+                  <div className="h-72 bg-surface-container-low animate-pulse rounded-2xl" />
+                </div>
               </div>
             ) : (
               <>
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-                  <div className="premium-card rounded-2xl p-8 flex flex-col">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <span className="material-symbols-outlined text-[28px]">payments</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+                  {/* Card 1: Total Revenue */}
+                  <div className="premium-card rounded-2xl p-6 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-[24px]">payments</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-tertiary font-bold flex items-center gap-1 text-label-md bg-tertiary/10 px-2.5 py-1 rounded-lg">
-                          <span className="material-symbols-outlined text-[16px]">trending_up</span>
-                          14.5%
+                        <span className={`font-bold flex items-center gap-0.5 text-label-sm px-2 py-0.5 rounded-lg ${
+                          (kpis?.total_revenue_30d_change_pct || 0) >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-error/10 text-error'
+                        }`}>
+                          <span className="material-symbols-outlined text-[14px]">
+                            {(kpis?.total_revenue_30d_change_pct || 0) >= 0 ? 'trending_up' : 'trending_down'}
+                          </span>
+                          {Math.abs(kpis?.total_revenue_30d_change_pct || 0).toFixed(1)}%
                         </span>
-                        <span className="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">vs prev month</span>
+                        <span className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-1">vs prior 30d</span>
                       </div>
                     </div>
-                    <p className="text-label-md font-semibold text-on-surface-variant tracking-wide">TOTAL REVENUE (RETAIL)</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <h3 className="font-display-lg text-display-lg font-bold text-on-surface">
-                        ${valuation?.retail_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    <p className="text-label-sm font-semibold text-on-surface-variant tracking-wide uppercase">TOTAL REVENUE (30D)</p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <h3 className="font-headline-lg text-headline-lg font-bold text-on-surface">
+                        ${kpis?.total_revenue_30d?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                       </h3>
-                      <span className="text-on-surface-variant text-label-sm">USD</span>
                     </div>
                   </div>
 
-                  <div className="premium-card rounded-2xl p-8 flex flex-col">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
-                        <span className="material-symbols-outlined text-[28px]">account_balance_wallet</span>
+                  {/* Card 2: Average Order Value */}
+                  <div className="premium-card rounded-2xl p-6 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+                        <span className="material-symbols-outlined text-[24px]">shopping_cart</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-tertiary font-bold flex items-center gap-1 text-label-md bg-tertiary/10 px-2.5 py-1 rounded-lg">
-                          <span className="material-symbols-outlined text-[16px]">trending_up</span>
-                          8.2%
+                        <span className={`font-bold flex items-center gap-0.5 text-label-sm px-2 py-0.5 rounded-lg ${
+                          (kpis?.avg_order_value_change_pct || 0) >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-error/10 text-error'
+                        }`}>
+                          <span className="material-symbols-outlined text-[14px]">
+                            {(kpis?.avg_order_value_change_pct || 0) >= 0 ? 'trending_up' : 'trending_down'}
+                          </span>
+                          {Math.abs(kpis?.avg_order_value_change_pct || 0).toFixed(1)}%
                         </span>
-                        <span className="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">vs prev month</span>
+                        <span className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-1">vs prior 30d</span>
                       </div>
                     </div>
-                    <p className="text-label-md font-semibold text-on-surface-variant tracking-wide">POTENTIAL PROFIT MARGIN</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <h3 className="font-display-lg text-display-lg font-bold text-on-surface">
-                        ${valuation?.potential_margin?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    <p className="text-label-sm font-semibold text-on-surface-variant tracking-wide uppercase">AVERAGE ORDER VALUE</p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <h3 className="font-headline-lg text-headline-lg font-bold text-on-surface">
+                        ${kpis?.avg_order_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                       </h3>
-                      <span className="text-on-surface-variant text-label-sm">USD</span>
                     </div>
                   </div>
 
-                  <div className="premium-card rounded-2xl p-8 flex flex-col">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary">
-                        <span className="material-symbols-outlined text-[28px]">inventory</span>
+                  {/* Card 3: 7D Revenue Forecast */}
+                  <div className="premium-card rounded-2xl p-6 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+                        <span className="material-symbols-outlined text-[24px]">online_prediction</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className={`font-bold flex items-center gap-1 text-label-md px-2.5 py-1 rounded-lg ${
+                        <span className="text-primary font-bold flex items-center gap-0.5 text-label-sm bg-primary/10 px-2 py-0.5 rounded-lg">
+                          7D Forecast
+                        </span>
+                        <span className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-1">Next 7 Days</span>
+                      </div>
+                    </div>
+                    <p className="text-label-sm font-semibold text-on-surface-variant tracking-wide uppercase">PREDICTIVE REVENUE</p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <h3 className="font-headline-lg text-headline-lg font-bold text-on-surface">
+                        ${kpis?.revenue_forecast_7d?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Inventory Health */}
+                  <div className="premium-card rounded-2xl p-6 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center text-error">
+                        <span className="material-symbols-outlined text-[24px]">inventory_2</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className={`font-bold flex items-center gap-0.5 text-label-sm px-2 py-0.5 rounded-lg ${
                           (summary?.inventory?.low_stock_items || 0) > 0 ? 'bg-error/10 text-error' : 'bg-green-500/10 text-green-400'
                         }`}>
-                          <span className="material-symbols-outlined text-[16px]">
+                          <span className="material-symbols-outlined text-[14px]">
                             {(summary?.inventory?.low_stock_items || 0) > 0 ? 'warning' : 'check_circle'}
                           </span>
                           {summary?.inventory?.low_stock_items || 0} Low Stock
                         </span>
-                        <span className="text-[11px] text-on-surface-variant uppercase tracking-widest mt-2">needs attention</span>
+                        <span className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-1">needs restock</span>
                       </div>
                     </div>
-                    <p className="text-label-md font-semibold text-on-surface-variant tracking-wide">TOTAL UNIQUE SKUS</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <h3 className="font-display-lg text-display-lg font-bold text-on-surface">
-                        {summary?.inventory?.total_items || 0}
+                    <p className="text-label-sm font-semibold text-on-surface-variant tracking-wide uppercase">INVENTORY HEALTH INDEX</p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <h3 className="font-headline-lg text-headline-lg font-bold text-on-surface">
+                        {kpis?.inventory_health_score?.toFixed(1) || '100.0'}%
                       </h3>
-                      <span className="text-on-surface-variant text-label-sm">ITEMS</span>
                     </div>
                   </div>
                 </div>
@@ -218,57 +268,49 @@ export default function Dashboard() {
                         <p className="text-body-sm text-on-surface-variant mt-1">Daily revenue fluctuations over current period</p>
                       </div>
                       <div className="flex p-1 bg-surface-container-low border border-outline-variant/10 rounded-xl">
-                        {['7D', '1M', '1Y'].map((range) => (
+                        {['30D'].map((range) => (
                           <button 
                             key={range} 
                             onClick={() => { setTimeRange(range); showToast(`Chart updated for: ${range}`) }}
-                            className={`px-4 py-1.5 rounded-lg text-label-sm transition-all ${
-                              timeRange === range ? 'bg-primary/20 text-primary font-bold shadow-inner' : 'text-on-surface-variant hover:text-on-surface'
-                            }`}
+                            className={`px-4 py-1.5 rounded-lg text-label-sm transition-all bg-primary/20 text-primary font-bold shadow-inner`}
                           >
                             {range}
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="w-full h-64 bg-surface-container-low rounded-lg relative overflow-hidden flex items-end px-4 pb-4 gap-2 border border-outline-variant/10">
-                      <div className="w-full h-[30%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[45%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[40%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[60%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[55%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[75%] bg-primary-container/20 rounded-t-sm hover:bg-primary-container/40 transition-colors"></div>
-                      <div className="w-full h-[85%] bg-primary/50 rounded-t-sm border-t border-primary relative">
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface px-2 py-1 rounded text-xs text-on-surface border border-outline-variant/30 font-label-sm">
-                          ${((valuation?.retail_value || 0) / 1000000).toFixed(1)}M
-                        </div>
-                      </div>
+                    <div className="w-full h-64 relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={salesData}>
+                          <defs>
+                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--md-sys-color-primary, #5b7cf0)" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="var(--md-sys-color-primary, #5b7cf0)" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={11} tickLine={false} />
+                          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(30,30,40,0.95)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px' }} />
+                          <Area type="monotone" dataKey="revenue" stroke="var(--md-sys-color-primary, #5b7cf0)" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} name="Revenue" />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
                   <div className="premium-card rounded-2xl p-8 flex flex-col">
-                    <h3 className="font-headline-md text-on-surface mb-2">Platform Summary</h3>
-                    <p className="text-body-sm text-on-surface-variant mb-8">Overall model status and system users</p>
-                    <div className="flex-1 flex flex-col justify-center gap-6">
-                      <div className="p-4 rounded-xl bg-surface-container-high/40 border border-outline-variant/5">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
-                          <div>
-                            <p className="font-label-sm text-on-surface-variant uppercase text-[11px]">Active ML Engines</p>
-                            <p className="text-body-lg font-bold text-on-surface">{summary?.predictions?.active_models || 0} Models Active</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 rounded-xl bg-surface-container-high/40 border border-outline-variant/5">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-secondary text-3xl">group</span>
-                          <div>
-                            <p className="font-label-sm text-on-surface-variant uppercase text-[11px]">System Access</p>
-                            <p className="text-body-lg font-bold text-on-surface">{summary?.users?.total || 0} Registered Users</p>
-                          </div>
-                        </div>
-                      </div>
+                    <h3 className="font-headline-md text-on-surface mb-2">Category Breakdown</h3>
+                    <p className="text-body-sm text-on-surface-variant mb-4">Consolidated sales by product category</p>
+                    <div className="w-full h-64 relative flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={salesByCategory}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="category" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+                          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(30,30,40,0.95)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '12px' }} />
+                          <Bar dataKey="revenue" fill="var(--md-sys-color-secondary, #b8c4ff)" radius={[4, 4, 0, 0]} name="Revenue" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </div>

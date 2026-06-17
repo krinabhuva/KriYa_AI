@@ -54,9 +54,12 @@ class ApiClient {
   async request(path, options = {}) {
     const url = `${API_BASE_URL}${path}`;
     const headers = {
-      'Content-Type': 'application/json',
       ...options.headers,
     };
+
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
@@ -290,6 +293,78 @@ class ApiClient {
     return await this.request(`/api/users/${userId}`, {
       method: 'DELETE',
     });
+  }
+
+  async chatAI(message, history = [], onChunk = null) {
+    const url = `${API_BASE_URL}/api/ai/chat`;
+    const headers = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    headers['Content-Type'] = 'application/json';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message, history }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || `Request failed with status ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulated = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      // SSE events are separated by double newline
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const text = line.slice(6);
+          if (text) {
+            accumulated += text;
+            if (onChunk) {
+              onChunk(text, accumulated);
+            }
+          }
+        }
+      }
+    }
+
+    return { content: accumulated };
+  }
+
+  async getKPIs() {
+    return await this.request('/api/analytics/kpis');
+  }
+
+  async getSalesDaily(days = 30, sku = null) {
+    let path = `/api/analytics/sales/daily?days=${days}`;
+    if (sku) path += `&sku=${sku}`;
+    return await this.request(path);
+  }
+
+  async getSalesByCategory(days = 30) {
+    return await this.request(`/api/analytics/sales/by-category?days=${days}`);
+  }
+
+  async uploadSalesCSV(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await this.request('/api/upload/sales-csv', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async getForecast(sku, days = 7) {
+    return await this.request(`/api/predictions/predict?sku=${sku}&days=${days}`);
   }
 }
 

@@ -62,6 +62,7 @@ class InventoryItem(Base):
     # Relationships
     created_by_user = relationship("User", back_populates="inventory_items")
     movements = relationship("InventoryMovement", back_populates="item")
+    sales_records = relationship("SalesRecord", back_populates="item")
 
     def __repr__(self):
         return f"<InventoryItem {self.sku}>"
@@ -166,3 +167,18 @@ class AuditLog(Base):
 
     def __repr__(self):
         return f"<AuditLog {self.action}>"
+
+
+class SalesRecord(Base):
+    __tablename__ = "sales_records"
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime, index=True)
+    product_sku = Column(String, ForeignKey("inventory_items.sku"), index=True)
+    quantity_sold = Column(Integer)
+    revenue = Column(Float)
+    region = Column(String, default="Global")
+    channel = Column(String, default="Direct")  # Direct, Online, Partner
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    item = relationship("InventoryItem", back_populates="sales_records")
+
